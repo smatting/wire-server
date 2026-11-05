@@ -12,9 +12,10 @@ on:
         required: true
         type: string
       charts_to_release:
-        description: Charts to publish, a JSON array of names as a string
-        required: true
+        description: Ignored, the charts come from the Makefile of the built commit (make echo-release-charts); a list that differs only warns
+        required: false
         type: string
+        default: ''
       source_ref:
         description: Branch the commit was built from
         required: false
@@ -35,11 +36,6 @@ env:
   S3_REPOSITORY: charts-develop
   WIRE_BUILDS_BRANCH: dev
   EXCLUDED_CHARTS: ldap-scim-bridge
-  OCI_CHARTS: >-
-    wire-server wire-server-enterprise
-    nginx-ingress-services ingress-nginx-controller wire-ingress
-    cassandra-external elasticsearch-external minio-external rabbitmq-external
-    reaper redis-ephemeral rabbitmq fake-aws-sqs
 
 jobs:
   dev-build:
@@ -73,7 +69,7 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
           COMMIT: ${{ inputs.commit }}
-          CHARTS: ${{ inputs.charts_to_release }}
+          CHARTS_INPUT: ${{ inputs.charts_to_release }}
           SOURCE_REF: ${{ inputs.source_ref }}
         run: ../ci/.github/scripts/dev-build-inputs.sh
 
