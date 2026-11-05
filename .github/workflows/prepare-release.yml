@@ -160,7 +160,7 @@ jobs:
         with:
           repository: wireapp/wire-rm-actions
           ref: 813f008b900b1ad3284502f97cac343d80b1836b # v0.1.0
-          path: ${{ runner.temp }}/rm-actions
+          path: rm-actions
           sparse-checkout: scripts
           persist-credentials: false
 
@@ -172,7 +172,7 @@ jobs:
           TAG_PREFIX: v
         run: |
           set -euo pipefail
-          bash "${RUNNER_TEMP}/rm-actions/scripts/compute-version.sh"
+          bash "${GITHUB_WORKSPACE}/rm-actions/scripts/compute-version.sh"
 
       - name: Install crane
         env:
@@ -181,7 +181,7 @@ jobs:
           DEST: ${{ runner.temp }}/crane
         run: |
           set -euo pipefail
-          bash "${RUNNER_TEMP}/rm-actions/scripts/install-crane.sh"
+          bash "${GITHUB_WORKSPACE}/rm-actions/scripts/install-crane.sh"
           echo "$DEST" >> "$GITHUB_PATH"
 
       - uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
