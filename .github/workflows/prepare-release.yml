@@ -44,6 +44,7 @@ jobs:
       checks: read
       statuses: read
       actions: read
+      id-token: write
     outputs:
       version: ${{ steps.version.outputs.version }}
       sha: ${{ steps.source.outputs.sha }}
@@ -203,6 +204,11 @@ jobs:
           TAG: ${{ steps.version.outputs.version }}
         run: python3 .github/scripts/release-images.py
 
+      - name: Login to quay.io with the OIDC token of the job
+        uses: wireapp/wire-rm-actions/quay-login@813f008b900b1ad3284502f97cac343d80b1836b # v0.1.0
+        with:
+          robot: wire+gha_wire-server
+
       - name: Resolve the images of the dev build
         id: digests
         env:
@@ -210,6 +216,10 @@ jobs:
           DEV_VERSION: ${{ steps.devbuild.outputs.version }}
           DIGESTS_FILE: ${{ runner.temp }}/image-digests.json
         run: .github/scripts/resolve-images.sh
+
+      - name: Log out of quay.io
+        if: always()
+        run: docker logout quay.io
 
       - name: Chart checksums
         id: charts
