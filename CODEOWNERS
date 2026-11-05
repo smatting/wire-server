@@ -1,6 +1,6 @@
-*		@wireapp/backend
+*		@wireapp/backend @smatting @bsinou
 /changelog.d/	@wireapp/backend @wireapp/platform-engineering @wireapp/customerops
 /charts/	@wireapp/backend @wireapp/platform-engineering @wireapp/customerops
 /docs/		@wireapp/backend @wireapp/platform-engineering @wireapp/customerops
-/.github/	@wireapp/backend @wireapp/release-managers
-/publication/	@wireapp/backend @wireapp/release-managers
+/.github/	@wireapp/backend @wireapp/release-managers @smatting @bsinou
+/publication/	@wireapp/backend @wireapp/release-managers @smatting @bsinou
