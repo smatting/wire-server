@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "wire.component-release/v1alpha2",
+  "component": "wire-server",
+  "version": "5.37.3",
+  "summary": "Maintenance release of the 5.37 line and the first one prepared with the Wire release standard. It brings the meeting join links and their endpoints at client API version 19 and removes the deprecated profilePict field. No migration and no configuration change: nothing to do before deploying.",
+  "upgrade_from": ">=5.37.0",
+  "changes": [
+    {
+      "kind": "changed",
+      "description": "Releases follow the Wire release standard: versions are tagged vX.Y.Z, the deployable charts are also published to oci://quay.io/wire/charts/stable/<chart> at the version of the release, and the release note, the release declaration and the compatibility file live in publication/ and are attached to the GitHub release. The existing chart repositories keep being updated.",
+      "breaking": false,
+      "links": []
+    },
+    {
+      "kind": "added",
+      "description": "Meeting join links carry the meeting key and its rotating code as query parameters, like conversation join links. Two endpoints resolve them: GET /meeting/{domain}/{key}/{code}/code-check, without authentication, returns the title, time and recurrence of the meeting, and POST /meeting/{domain}/{key}/{code}/join joins its conversation. They replace the pre-release GET and POST /meeting-join routes. Refreshing a link invalidates every URL issued before. The optional password travels as a query parameter; nginz masks it in its access log.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5560"
+      ]
+    },
+    {
+      "kind": "added",
+      "description": "From client API version 19 the meeting object carries a link field, the join link of the meeting, present only when the meeting has a live join code. Versions 15 to 18 are unchanged.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5558"
+      ]
+    },
+    {
+      "kind": "changed",
+      "description": "The meeting type is no longer accepted on PUT /meetings/{domain}/{id}, and a null recurrence in an update body now unsets the recurrence on every API version instead of failing with a 400.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5577"
+      ]
+    },
+    {
+      "kind": "removed",
+      "description": "The deprecated profilePict field is removed from the user profile of the client API. Clients read the profile picture from assets.",
+      "breaking": false,
+      "links": []
+    }
+  ],
+  "migrations": [],
+  "configuration": []
+}
