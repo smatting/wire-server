@@ -8,7 +8,7 @@ providesApis:
     versions:
       supported: [0, 1, 2, 3, 4]
       deprecated: []
-      development: []
+      development: [5]
   - api: wire-server/internal-api
     versions: ["0.1.0"]
   - api: wire-server/team-events
