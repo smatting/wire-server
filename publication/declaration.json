@@ -1,112 +1,91 @@
 {
   "schemaVersion": "wire.component-release/v1alpha2",
   "component": "wire-server",
-  "version": "5.37.18",
-  "summary": "Maintenance release of the 5.37 line and the first one published with the Wire release standard. It adds meeting join links, targeted MLS messages and coturn native TURN credentials at client API version 19, and a runtime-controlled development federation API version. Before deploying: if you run the wire-ingress chart, upgrade to Envoy Gateway 1.9 or later with the Gateway API 1.6.1 CRDs on Kubernetes 1.33 or later; otherwise nothing to do.",
+  "version": "5.38.14",
+  "summary": "Maintenance release of the 5.38 line. Meeting join links become mandatory, PostgreSQL storage is available for custom backends, login budgets, DPoP nonces and connections, and team admins can resend verification emails. Before deploying: if galley.config.postgresMigration.conversationCodes is still cassandra, move it to migration-to-postgresql, or meetings fail with 500 link-unavailable.",
   "upgrade_from": ">=5.37.2",
   "changes": [
     {
       "kind": "changed",
-      "description": "wire-ingress chart: application listeners and traffic policies move from the Gateway to a ListenerSet owned by the release; the Gateway keeps only a placeholder listener on gateway.listeners.placeholder.port (65535 by default). Before upgrading the chart: run Envoy Gateway 1.9 or later on Kubernetes 1.33 or later (the chart now declares kubeVersion >=1.33.0-0), install the Gateway API 1.6.1 standard CRDs with the matching Envoy Gateway extension CRDs, and set extensionApis.enableLua: true in the controller configuration when federation is enabled. With gateway.create: false, the existing Gateway must allow ListenerSets from the release namespace. With the legacy xDS name scheme, the listener name targeted by the FIPS patch policy now includes the ListenerSet: check gateway.patchPolicies.xdsListenerName if you set it. See the wire-ingress README.",
+      "description": "Every meeting now has a join link backed by a live join code, and meeting join codes are only stored in PostgreSQL. With galley.config.postgresMigration.conversationCodes on cassandra (the chart default), creating a meeting or refreshing its link fails with 500 link-unavailable, and so do reads of meetings that have no live join code, on every API version. Before upgrading, set conversationCodes to migration-to-postgresql (dual-write, guest links stay on Cassandra) or postgresql, and keep a join-link URI configured (galley settings.conversationCodeURI, or the domain of the user in settings.multiIngress).",
       "breaking": true,
       "links": [
-        "https://github.com/wireapp/wire-server/pull/5591"
+        "https://github.com/wireapp/wire-server/pull/5597"
       ]
     },
     {
       "kind": "changed",
-      "description": "wire-ingress chart: the Envoy proxy fleet created by the chart defaults to 3 replicas, with a PodDisruptionBudget (minAvailable 1) unless the replica count is 1, and advisory spread over nodes and availability zones. Zone-aware routing is on by default (gateway.zoneAwareRouting.enabled): Envoy prefers backend pods in its own zone, which needs nodes labelled topology.kubernetes.io/zone and Envoy Gateway's topology injector. New values gateway.annotations and gateway.infrastructure.labels.",
+      "description": "From client API version 19 every meeting carries its join link: a one-off data migration gives each existing meeting without a live join code a canonical one, without rotating existing codes, and replaces the periodic galley backfill. Refreshing a meeting link reports has_password according to the password supplied with the refresh.",
       "breaking": false,
       "links": [
-        "https://github.com/wireapp/wire-server/pull/5574"
+        "https://github.com/wireapp/wire-server/pull/5597"
+      ]
+    },
+    {
+      "kind": "added",
+      "description": "PostgreSQL storage for custom backends, login budgets, DPoP nonces and connections, opt-in through the new galley.config.postgresMigration keys customBackend, budget, nonce and connections (cassandra by default). Custom backends, nonces and connections are backfilled by background-worker (migrateCustomBackend, migrateNonce, migrateConnections); budgets have no backfill, so keep budget on migration-to-postgresql for at least the longest limitFailedLogins.timeout before switching to postgresql. Follow the migration pattern of the configuration options documentation.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5633",
+        "https://github.com/wireapp/wire-server/pull/5619",
+        "https://github.com/wireapp/wire-server/pull/5675",
+        "https://github.com/wireapp/wire-server/pull/5626"
+      ]
+    },
+    {
+      "kind": "added",
+      "description": "PUT /teams/{tid}/members/{uid}/verification-email lets a team admin resend the verification email of a member whose email address is still unverified: 202 when an email is sent, 204 when there is nothing to verify.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5681"
+      ]
+    },
+    {
+      "kind": "added",
+      "description": "Mock endpoints for TOTP (RFC 6238) second factors from client API version 19: POST /self/totp, POST /self/totp/{id}/activate, GET /self/totp, PUT /self/totp/{id} and DELETE /self/totp/{id}. They parse the request and return generated data; nothing is stored and no code is checked. nginz routes them without OAuth scopes.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5653"
       ]
     },
     {
       "kind": "changed",
-      "description": "Releases follow the Wire release standard: versions are tagged vX.Y.Z, the images are promoted by digest from a dev build, the deployable charts are also published to oci://quay.io/wire/charts/stable/<chart> at the version of the release, and the release note, the release declaration and the compatibility file live in publication/ and are attached to the GitHub release. The existing chart repositories keep being updated.",
-      "breaking": false,
-      "links": []
-    },
-    {
-      "kind": "added",
-      "description": "Meeting join links carry the meeting key and its rotating code as query parameters, like conversation join links. Two endpoints resolve them: GET /meeting/{domain}/{key}/{code}/code-check, without authentication, returns the title, time and recurrence of the meeting, and POST /meeting/{domain}/{key}/{code}/join joins its conversation. They replace the pre-release GET and POST /meeting-join routes. Refreshing a link invalidates every URL issued before. The optional password travels as a query parameter; nginz masks it in its access log.",
+      "description": "Federation error responses include federation_domain, the requested peer, and, when an SRV target is known, srv_target and srv_target_domain. The domain and path fields are unchanged. Federation error logs carry the same information.",
       "breaking": false,
       "links": [
-        "https://github.com/wireapp/wire-server/pull/5560"
-      ]
-    },
-    {
-      "kind": "added",
-      "description": "From client API version 19, POST /meetings accepts an optional password that protects the join link of the meeting, and meeting responses (create, get, list, update, link refresh) carry has_password.",
-      "breaking": false,
-      "links": [
-        "https://github.com/wireapp/wire-server/pull/5588",
-        "https://github.com/wireapp/wire-server/pull/5595"
+        "https://github.com/wireapp/wire-server/pull/5651"
       ]
     },
     {
       "kind": "changed",
-      "description": "The meeting type is no longer accepted on PUT /meetings/{domain}/{id}. A null recurrence in an update body now unsets the recurrence on every API version instead of failing with a 400, and an update body that omits recurrence leaves it unchanged instead of clearing it.",
+      "description": "nginx-ingress-services: the federator ingress only exposes paths under /federation instead of every path of the federator.",
       "breaking": false,
       "links": [
-        "https://github.com/wireapp/wire-server/pull/5577"
+        "https://github.com/wireapp/wire-server/pull/5355"
       ]
     },
     {
       "kind": "added",
-      "description": "Targeted MLS messages, from client API version 19: POST /mls/messages/targeted for persistent targeted messages and POST /mls/messages/transient-targeted for transient ones, to local and federated users.",
+      "description": "Gundeck exports new Prometheus metrics on stored pushes (wire_push_stored_*), notification fetches (wire_notification_fetch*) and websocket deliveries (wire_push_ws_delivered_presences*).",
       "breaking": false,
       "links": [
-        "https://github.com/wireapp/wire-server/pull/5570",
-        "https://github.com/wireapp/wire-server/pull/5599"
-      ]
-    },
-    {
-      "kind": "added",
-      "description": "GET /calls/config/v3 serves TURN credentials in coturn's native long-term credential format instead of zauth. It is enabled by the optional brig secret brig.secrets.turn.coturnSecret, the coturn static-auth-secret; while it is unset the endpoint answers 500. Enable it only when every advertised TURN server validates coturn native credentials (use-auth-secret, the same static-auth-secret, a realm). /calls/config and /calls/config/v2 keep using turn.secret.",
-      "breaking": false,
-      "links": [
-        "https://github.com/wireapp/wire-server/pull/5590"
-      ]
-    },
-    {
-      "kind": "added",
-      "description": "Federation API version 5 is a development version, disabled by default through the new wire-server chart value apiVersions.disabledFederationAPIVersions ([development]). A disabled version is left out of version negotiation and requests using it are rejected. Versions 0 and 1 cannot be disabled.",
-      "breaking": false,
-      "links": [
-        "https://github.com/wireapp/wire-server/pull/5582"
-      ]
-    },
-    {
-      "kind": "added",
-      "description": "Backoffice: GET /teams/{tid}/members/csv exports the members of a team as a CSV file.",
-      "breaking": false,
-      "links": [
-        "https://github.com/wireapp/wire-server/pull/5594"
-      ]
-    },
-    {
-      "kind": "changed",
-      "description": "Email templates are updated to v1.0.160.",
-      "breaking": false,
-      "links": [
-        "https://github.com/wireapp/wire-server/pull/5572"
+        "https://github.com/wireapp/wire-server/pull/5683"
       ]
     },
     {
       "kind": "fixed",
-      "description": "Stealth users are no longer returned by exact-handle searches, including federated search and POST /list-users with qualified_handles.",
+      "description": "Re-joining an MLS group with an external commit could drop the client from the member list kept by the backend, silently stopping message delivery to that client.",
       "breaking": false,
       "links": [
-        "https://github.com/wireapp/wire-server/pull/5596"
+        "https://github.com/wireapp/wire-server/pull/5677"
       ]
     },
     {
       "kind": "fixed",
-      "description": "Image pull failures in two charts whose upstream images are gone: fake-aws-s3 now pulls minio and mc from quay.io/wire/mirror-images/minio, and the postgresql subchart of legalhold pulls bitnamilegacy/postgresql:11.10.0.",
+      "description": "Legacy team 1:1 conversations are excluded from the prevention of admin-less groups.",
       "breaking": false,
       "links": [
-        "https://github.com/wireapp/wire-server/pull/5592"
+        "https://github.com/wireapp/wire-server/pull/5686"
       ]
     }
   ],
@@ -114,89 +93,84 @@
     {
       "kind": "manual",
       "automatic": false,
-      "description": "Only for the wire-ingress chart: upgrade Envoy Gateway to 1.9 or later on Kubernetes 1.33 or later, install the Gateway API 1.6.1 standard CRDs and the matching Envoy Gateway extension CRDs, and set extensionApis.enableLua: true in the controller configuration when federation is enabled. With gateway.create: false, allow ListenerSets from the release namespace on the existing Gateway.",
-      "order": "before upgrading the wire-ingress chart",
-      "downtime": "none expected; plan a maintenance window for the ingress, as the HTTPS listeners move from the Gateway to a ListenerSet during the chart upgrade",
+      "description": "If galley.config.postgresMigration.conversationCodes is cassandra, set it to migration-to-postgresql (or postgresql once the conversation codes are migrated) and check that settings.conversationCodeURI or settings.multiIngress is set in galley.",
+      "order": "before upgrading",
+      "downtime": "none",
+      "reversible": true
+    },
+    {
+      "kind": "data",
+      "automatic": true,
+      "description": "SQL migration 20261019090000-meeting-join-code-backfill gives every meeting without a live join code a canonical one. It runs once per database at service startup and never rotates an existing code.",
+      "order": "at startup, before meetings are served",
+      "downtime": "none",
       "reversible": false
+    },
+    {
+      "kind": "schema",
+      "automatic": true,
+      "description": "SQL migrations create the PostgreSQL tables of the budget, connections, custom backend and nonce stores. They stay unused while the matching postgresMigration keys are cassandra.",
+      "order": "at startup",
+      "downtime": "none",
+      "reversible": true
     }
   ],
   "configuration": [
     {
-      "key": "apiVersions.disabledFederationAPIVersions",
-      "change": "added",
-      "required": false,
-      "default": "[development]",
-      "description": "wire-server chart. Federation API versions to disable, or development; [] enables the development version. Rendered into the brig (setDisabledFederationAPIVersions), galley and cargohold (disabledFederationAPIVersions) configuration, where the key is mandatory: keep the same value in all three when the service configuration is written by hand."
-    },
-    {
-      "key": "brig.secrets.turn.coturnSecret",
-      "change": "added",
-      "required": false,
-      "default": null,
-      "description": "wire-server chart. The coturn static-auth-secret; when set, brig reads it as turn.coturnSecret and serves GET /calls/config/v3."
-    },
-    {
-      "key": "wire-ingress: gateway.listeners.placeholder.port",
-      "change": "added",
-      "required": false,
-      "default": "65535",
-      "description": "Port of the placeholder listener the Gateway keeps once application listeners move to the ListenerSet. Must differ from the HTTPS and HTTP listener ports."
-    },
-    {
-      "key": "wire-ingress: gateway.envoyProxy.replicas",
-      "change": "added",
-      "required": false,
-      "default": "3",
-      "description": "Envoy proxy replicas when the chart creates the Gateway and the EnvoyProxy; a PodDisruptionBudget is created unless the final count is 1. Set 1 to keep a single proxy."
-    },
-    {
-      "key": "wire-ingress: gateway.envoyProxy.topologySpreadKeys",
-      "change": "added",
-      "required": false,
-      "default": "[kubernetes.io/hostname, topology.kubernetes.io/zone]",
-      "description": "Advisory spread of the Envoy proxies (ScheduleAnyway). Set [] to disable."
-    },
-    {
-      "key": "wire-ingress: gateway.zoneAwareRouting.enabled",
-      "change": "added",
-      "required": false,
-      "default": "true",
-      "description": "Prefer backend pods in the proxy's own zone. Needs nodes labelled topology.kubernetes.io/zone and Envoy Gateway's topology injector; set false otherwise."
-    },
-    {
-      "key": "wire-ingress: gateway.zoneAwareRouting.minEndpointsThreshold",
-      "change": "added",
-      "required": false,
-      "default": "3",
-      "description": "Below this many backend endpoints across all zones, Envoy balances normally."
-    },
-    {
-      "key": "wire-ingress: gateway.annotations",
-      "change": "added",
-      "required": false,
-      "default": "{}",
-      "description": "Annotations on the Gateway object (read by external-dns), not propagated to the proxy Service."
-    },
-    {
-      "key": "wire-ingress: gateway.infrastructure.labels",
-      "change": "added",
-      "required": false,
-      "default": "{}",
-      "description": "Labels propagated to the resources generated for the Gateway. Gateway API 1.1 or later."
-    },
-    {
-      "key": "fake-aws-s3: minio.image, minio.mcImage",
+      "key": "galley.config.postgresMigration.conversationCodes",
       "change": "changed",
-      "required": false,
-      "default": "quay.io/wire/mirror-images/minio/{minio,mc}",
-      "description": "The original image repositories are gone; overrides of these images in Helm values can be removed."
+      "required": true,
+      "default": "cassandra",
+      "description": "The default is unchanged, but meetings now need meeting join codes in PostgreSQL: set migration-to-postgresql or postgresql, otherwise meetings fail with 500 link-unavailable."
     },
     {
-      "key": "legalhold: postgresql.image",
-      "change": "changed",
+      "key": "galley.config.postgresMigration.customBackend",
+      "change": "added",
+      "required": true,
+      "default": "cassandra",
+      "description": "Storage of custom backends: cassandra, migration-to-postgresql or postgresql. Mandatory in the brig, galley and background-worker configuration; the chart renders the default."
+    },
+    {
+      "key": "galley.config.postgresMigration.budget",
+      "change": "added",
+      "required": true,
+      "default": "cassandra",
+      "description": "Storage of login budgets (rate-limit counters). No backfill: stay on migration-to-postgresql for at least the longest limitFailedLogins.timeout before switching to postgresql."
+    },
+    {
+      "key": "galley.config.postgresMigration.nonce",
+      "change": "added",
+      "required": true,
+      "default": "cassandra",
+      "description": "Storage of DPoP replay nonces: cassandra, migration-to-postgresql or postgresql."
+    },
+    {
+      "key": "galley.config.postgresMigration.connections",
+      "change": "added",
+      "required": true,
+      "default": "cassandra",
+      "description": "Storage of user connections: cassandra, migration-to-postgresql or postgresql."
+    },
+    {
+      "key": "background-worker.config.migrateCustomBackend",
+      "change": "added",
       "required": false,
-      "default": "bitnamilegacy/postgresql:11.10.0",
-      "description": "docker.io/bitnami no longer serves this tag; overrides can be removed."
+      "default": "false",
+      "description": "Starts the backfill of custom backends to PostgreSQL. Set postgresMigration.customBackend to migration-to-postgresql first."
+    },
+    {
+      "key": "background-worker.config.migrateNonce",
+      "change": "added",
+      "required": false,
+      "default": "false",
+      "description": "Starts the backfill of DPoP nonces to PostgreSQL. Set postgresMigration.nonce to migration-to-postgresql first."
+    },
+    {
+      "key": "background-worker.config.migrateConnections",
+      "change": "added",
+      "required": false,
+      "default": "false",
+      "description": "Starts the backfill of connections to PostgreSQL. Set postgresMigration.connections to migration-to-postgresql first."
     }
   ]
 }
