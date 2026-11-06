@@ -1,13 +1,29 @@
 {
   "schemaVersion": "wire.component-release/v1alpha2",
   "component": "wire-server",
-  "version": "5.37.3",
-  "summary": "Maintenance release of the 5.37 line and the first one prepared with the Wire release standard. It brings the meeting join links and their endpoints at client API version 19 and removes the deprecated profilePict field. No migration and no configuration change: nothing to do before deploying.",
-  "upgrade_from": ">=5.37.0",
+  "version": "5.37.18",
+  "summary": "Maintenance release of the 5.37 line and the first one published with the Wire release standard. It adds meeting join links, targeted MLS messages and coturn native TURN credentials at client API version 19, and a runtime-controlled development federation API version. Before deploying: if you run the wire-ingress chart, upgrade to Envoy Gateway 1.9 or later with the Gateway API 1.6.1 CRDs on Kubernetes 1.33 or later; otherwise nothing to do.",
+  "upgrade_from": ">=5.37.2",
   "changes": [
     {
       "kind": "changed",
-      "description": "Releases follow the Wire release standard: versions are tagged vX.Y.Z, the deployable charts are also published to oci://quay.io/wire/charts/stable/<chart> at the version of the release, and the release note, the release declaration and the compatibility file live in publication/ and are attached to the GitHub release. The existing chart repositories keep being updated.",
+      "description": "wire-ingress chart: application listeners and traffic policies move from the Gateway to a ListenerSet owned by the release; the Gateway keeps only a placeholder listener on gateway.listeners.placeholder.port (65535 by default). Before upgrading the chart: run Envoy Gateway 1.9 or later on Kubernetes 1.33 or later (the chart now declares kubeVersion >=1.33.0-0), install the Gateway API 1.6.1 standard CRDs with the matching Envoy Gateway extension CRDs, and set extensionApis.enableLua: true in the controller configuration when federation is enabled. With gateway.create: false, the existing Gateway must allow ListenerSets from the release namespace. With the legacy xDS name scheme, the listener name targeted by the FIPS patch policy now includes the ListenerSet: check gateway.patchPolicies.xdsListenerName if you set it. See the wire-ingress README.",
+      "breaking": true,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5591"
+      ]
+    },
+    {
+      "kind": "changed",
+      "description": "wire-ingress chart: the Envoy proxy fleet created by the chart defaults to 3 replicas, with a PodDisruptionBudget (minAvailable 1) unless the replica count is 1, and advisory spread over nodes and availability zones. Zone-aware routing is on by default (gateway.zoneAwareRouting.enabled): Envoy prefers backend pods in its own zone, which needs nodes labelled topology.kubernetes.io/zone and Envoy Gateway's topology injector. New values gateway.annotations and gateway.infrastructure.labels.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5574"
+      ]
+    },
+    {
+      "kind": "changed",
+      "description": "Releases follow the Wire release standard: versions are tagged vX.Y.Z, the images are promoted by digest from a dev build, the deployable charts are also published to oci://quay.io/wire/charts/stable/<chart> at the version of the release, and the release note, the release declaration and the compatibility file live in publication/ and are attached to the GitHub release. The existing chart repositories keep being updated.",
       "breaking": false,
       "links": []
     },
@@ -21,27 +37,166 @@
     },
     {
       "kind": "added",
-      "description": "From client API version 19 the meeting object carries a link field, the join link of the meeting, present only when the meeting has a live join code. Versions 15 to 18 are unchanged.",
+      "description": "From client API version 19, POST /meetings accepts an optional password that protects the join link of the meeting, and meeting responses (create, get, list, update, link refresh) carry has_password.",
       "breaking": false,
       "links": [
-        "https://github.com/wireapp/wire-server/pull/5558"
+        "https://github.com/wireapp/wire-server/pull/5588",
+        "https://github.com/wireapp/wire-server/pull/5595"
       ]
     },
     {
       "kind": "changed",
-      "description": "The meeting type is no longer accepted on PUT /meetings/{domain}/{id}, and a null recurrence in an update body now unsets the recurrence on every API version instead of failing with a 400.",
+      "description": "The meeting type is no longer accepted on PUT /meetings/{domain}/{id}. A null recurrence in an update body now unsets the recurrence on every API version instead of failing with a 400, and an update body that omits recurrence leaves it unchanged instead of clearing it.",
       "breaking": false,
       "links": [
         "https://github.com/wireapp/wire-server/pull/5577"
       ]
     },
     {
-      "kind": "removed",
-      "description": "The deprecated profilePict field is removed from the user profile of the client API. Clients read the profile picture from assets.",
+      "kind": "added",
+      "description": "Targeted MLS messages, from client API version 19: POST /mls/messages/targeted for persistent targeted messages and POST /mls/messages/transient-targeted for transient ones, to local and federated users.",
       "breaking": false,
-      "links": []
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5570",
+        "https://github.com/wireapp/wire-server/pull/5599"
+      ]
+    },
+    {
+      "kind": "added",
+      "description": "GET /calls/config/v3 serves TURN credentials in coturn's native long-term credential format instead of zauth. It is enabled by the optional brig secret brig.secrets.turn.coturnSecret, the coturn static-auth-secret; while it is unset the endpoint answers 500. Enable it only when every advertised TURN server validates coturn native credentials (use-auth-secret, the same static-auth-secret, a realm). /calls/config and /calls/config/v2 keep using turn.secret.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5590"
+      ]
+    },
+    {
+      "kind": "added",
+      "description": "Federation API version 5 is a development version, disabled by default through the new wire-server chart value apiVersions.disabledFederationAPIVersions ([development]). A disabled version is left out of version negotiation and requests using it are rejected. Versions 0 and 1 cannot be disabled.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5582"
+      ]
+    },
+    {
+      "kind": "added",
+      "description": "Backoffice: GET /teams/{tid}/members/csv exports the members of a team as a CSV file.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5594"
+      ]
+    },
+    {
+      "kind": "changed",
+      "description": "Email templates are updated to v1.0.160.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5572"
+      ]
+    },
+    {
+      "kind": "fixed",
+      "description": "Stealth users are no longer returned by exact-handle searches, including federated search and POST /list-users with qualified_handles.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5596"
+      ]
+    },
+    {
+      "kind": "fixed",
+      "description": "Image pull failures in two charts whose upstream images are gone: fake-aws-s3 now pulls minio and mc from quay.io/wire/mirror-images/minio, and the postgresql subchart of legalhold pulls bitnamilegacy/postgresql:11.10.0.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5592"
+      ]
     }
   ],
-  "migrations": [],
-  "configuration": []
+  "migrations": [
+    {
+      "kind": "manual",
+      "automatic": false,
+      "description": "Only for the wire-ingress chart: upgrade Envoy Gateway to 1.9 or later on Kubernetes 1.33 or later, install the Gateway API 1.6.1 standard CRDs and the matching Envoy Gateway extension CRDs, and set extensionApis.enableLua: true in the controller configuration when federation is enabled. With gateway.create: false, allow ListenerSets from the release namespace on the existing Gateway.",
+      "order": "before upgrading the wire-ingress chart",
+      "downtime": "none expected; plan a maintenance window for the ingress, as the HTTPS listeners move from the Gateway to a ListenerSet during the chart upgrade",
+      "reversible": false
+    }
+  ],
+  "configuration": [
+    {
+      "key": "apiVersions.disabledFederationAPIVersions",
+      "change": "added",
+      "required": false,
+      "default": "[development]",
+      "description": "wire-server chart. Federation API versions to disable, or development; [] enables the development version. Rendered into the brig (setDisabledFederationAPIVersions), galley and cargohold (disabledFederationAPIVersions) configuration, where the key is mandatory: keep the same value in all three when the service configuration is written by hand."
+    },
+    {
+      "key": "brig.secrets.turn.coturnSecret",
+      "change": "added",
+      "required": false,
+      "default": null,
+      "description": "wire-server chart. The coturn static-auth-secret; when set, brig reads it as turn.coturnSecret and serves GET /calls/config/v3."
+    },
+    {
+      "key": "wire-ingress: gateway.listeners.placeholder.port",
+      "change": "added",
+      "required": false,
+      "default": "65535",
+      "description": "Port of the placeholder listener the Gateway keeps once application listeners move to the ListenerSet. Must differ from the HTTPS and HTTP listener ports."
+    },
+    {
+      "key": "wire-ingress: gateway.envoyProxy.replicas",
+      "change": "added",
+      "required": false,
+      "default": "3",
+      "description": "Envoy proxy replicas when the chart creates the Gateway and the EnvoyProxy; a PodDisruptionBudget is created unless the final count is 1. Set 1 to keep a single proxy."
+    },
+    {
+      "key": "wire-ingress: gateway.envoyProxy.topologySpreadKeys",
+      "change": "added",
+      "required": false,
+      "default": "[kubernetes.io/hostname, topology.kubernetes.io/zone]",
+      "description": "Advisory spread of the Envoy proxies (ScheduleAnyway). Set [] to disable."
+    },
+    {
+      "key": "wire-ingress: gateway.zoneAwareRouting.enabled",
+      "change": "added",
+      "required": false,
+      "default": "true",
+      "description": "Prefer backend pods in the proxy's own zone. Needs nodes labelled topology.kubernetes.io/zone and Envoy Gateway's topology injector; set false otherwise."
+    },
+    {
+      "key": "wire-ingress: gateway.zoneAwareRouting.minEndpointsThreshold",
+      "change": "added",
+      "required": false,
+      "default": "3",
+      "description": "Below this many backend endpoints across all zones, Envoy balances normally."
+    },
+    {
+      "key": "wire-ingress: gateway.annotations",
+      "change": "added",
+      "required": false,
+      "default": "{}",
+      "description": "Annotations on the Gateway object (read by external-dns), not propagated to the proxy Service."
+    },
+    {
+      "key": "wire-ingress: gateway.infrastructure.labels",
+      "change": "added",
+      "required": false,
+      "default": "{}",
+      "description": "Labels propagated to the resources generated for the Gateway. Gateway API 1.1 or later."
+    },
+    {
+      "key": "fake-aws-s3: minio.image, minio.mcImage",
+      "change": "changed",
+      "required": false,
+      "default": "quay.io/wire/mirror-images/minio/{minio,mc}",
+      "description": "The original image repositories are gone; overrides of these images in Helm values can be removed."
+    },
+    {
+      "key": "legalhold: postgresql.image",
+      "change": "changed",
+      "required": false,
+      "default": "bitnamilegacy/postgresql:11.10.0",
+      "description": "docker.io/bitnami no longer serves this tag; overrides can be removed."
+    }
+  ]
 }
