@@ -11,6 +11,9 @@ hself: hsuper: {
   # tests don't work, but only in a flake
   saml2-web-sso = hlib.dontCheck hsuper.saml2-web-sso;
 
+  # the t_iter property fails with the pinned text
+  attoparsec = hlib.dontCheck hsuper.attoparsec;
+
   # test suite doesn't compile and needs network access
   bloodhound = hlib.dontCheck hsuper.bloodhound;
 
