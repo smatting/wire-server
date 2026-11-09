@@ -9,18 +9,6 @@ providesApis:
       supported: [0, 1, 2, 3, 4]
       deprecated: []
       development: []
-  - api: wire-server/internal-api
-    versions: ["0.1.0"]
-  - api: wire-server/team-events
-    versions: ["0.1.0"]
-  - api: wire-server/user-events
-    versions: ["0.1.0"]
-  - api: wire-server/cells-events
-    versions: ["0.1.0"]
-  - api: wire-server/scim-api
-    versions: ["2.0.0"]
-  - api: wire-server/saml-sso
-    versions: ["2.0.0"]
 
 consumesApis: []
 
