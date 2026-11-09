@@ -1,0 +1,250 @@
+{
+  "schemaVersion": "wire.component-release/v1alpha2",
+  "component": "wire-server",
+  "version": "5.36.32",
+  "summary": "Maintenance release of the 5.36 line for operators running 5.36.0, and the first 5.36 version published with the Wire release standard. Before deploying: if you run the wire-ingress chart, it now accepts TLS 1.3 only unless you set gateway.tls.minVersion to 1.2; and brig no longer starts when the domain of emailSMS.general.emailSender ends with a label that starts with a digit.",
+  "upgrade_from": ">=5.36.0",
+  "changes": [
+    {
+      "kind": "changed",
+      "description": "wire-ingress chart: the gateway accepts TLS 1.3 only by default, on the HTTPS listeners and on the federation listener, and offers post-quantum key exchange (X25519MLKEM768). Clients or federation peers limited to TLS 1.2 can no longer connect. If you need them, set gateway.tls.minVersion to \"1.2\" before upgrading. The separate ALPN and PROXY protocol ClientTrafficPolicies are replaced by one policy per target; helm upgrade handles it.",
+      "breaking": true,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5480"
+      ]
+    },
+    {
+      "kind": "changed",
+      "description": "brig refuses to start when the domain of emailSMS.general.emailSender has a last label that starts with a digit, a domain SES rejects anyway. Check the sender address in the brig configuration before upgrading.",
+      "breaking": true,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5550"
+      ]
+    },
+    {
+      "kind": "added",
+      "description": "Block list entries and password reset codes can move from Cassandra to PostgreSQL, opt-in through galley.config.postgresMigration.blockList and passwordReset (cassandra by default), with background-worker backfills started by migrateBlockList and migratePasswordReset. Follow the migration pattern of the configuration options documentation: migration-to-postgresql, then the backfill, then postgresql.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5409",
+        "https://github.com/wireapp/wire-server/pull/5412"
+      ]
+    },
+    {
+      "kind": "added",
+      "description": "wire-ingress chart: FIPS_202205_tls_profile switches the gateway to the FIPS 202205 TLS profile of Envoy, which helps with BSI TR-02102-2. It needs an ECDSA P-256 or P-384 certificate, a dedicated Gateway, and an explicit gateway.patchPolicies.xdsNameSchemeV2. See the chart README.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5480"
+      ]
+    },
+    {
+      "kind": "added",
+      "description": "wire-ingress chart: the TLS settings of the gateway are configurable under gateway.tls; the chart can attach to an existing Gateway whose listeners have other names (gateway.listeners.https.sectionName, gateway.listeners.federator.sectionName, a sectionName per extra domain), and serve extra HTTPS hosts (gateway.extraHttpsListeners, tls.extraDnsNames).",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5480"
+      ]
+    },
+    {
+      "kind": "added",
+      "description": "nginx-ingress-services chart: config.cspExtraConnectSrc adds connect-src entries to the Content Security Policy rendered in the ingress (renderCSPInIngress true, multi-ingress setups), for example to let the webapp reach third-party SFT servers.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5236"
+      ]
+    },
+    {
+      "kind": "added",
+      "description": "In the development client API version 19, meetings carry a type (immediate or scheduled, required on creation) and, when the meeting has a live join code, an https join link. Versions 15 to 18 are unchanged; existing meetings are scheduled.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5556",
+        "https://github.com/wireapp/wire-server/pull/5558"
+      ]
+    },
+    {
+      "kind": "removed",
+      "description": "In the development client API version 19, user profiles no longer carry the deprecated picture field. Version 18 and older still return it.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5538"
+      ]
+    },
+    {
+      "kind": "changed",
+      "description": "The protection against groups without an admin, and the automatic promotion of a new admin, apply to channels as well as to regular groups.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5579"
+      ]
+    },
+    {
+      "kind": "changed",
+      "description": "When a meeting is deleted, clients receive meeting.delete before the deletion of its conversation.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5571"
+      ]
+    },
+    {
+      "kind": "changed",
+      "description": "galley publishes team events to the FIFO queue with the team as message group: events of one team stay in order, events of different teams can be processed in parallel.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5580"
+      ]
+    },
+    {
+      "kind": "fixed",
+      "description": "An IdP can be deleted again after its issuer was changed through the IdP management API.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5548"
+      ]
+    },
+    {
+      "kind": "fixed",
+      "description": "Removing a user from a team also removes them from the MLS groups of the team conversations. Before, the group could keep the user, and re-adding a collaborator to a conversation failed silently.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5555"
+      ]
+    },
+    {
+      "kind": "fixed",
+      "description": "An activation email to a domain SES rejects returns an invalid-email error instead of a server error.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5550"
+      ]
+    },
+    {
+      "kind": "fixed",
+      "description": "At login, brig checks whether a password set before the 8-character minimum is shorter than 8 characters, so the user can be asked to change it.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5543"
+      ]
+    },
+    {
+      "kind": "fixed",
+      "description": "The migration of users to PostgreSQL skips invalid assets instead of failing.",
+      "breaking": false,
+      "links": [
+        "https://github.com/wireapp/wire-server/pull/5569"
+      ]
+    }
+  ],
+  "migrations": [
+    {
+      "kind": "schema",
+      "automatic": true,
+      "description": "SQL migrations create the PostgreSQL tables of the block list and password reset code stores, and add the meeting type column (existing meetings become scheduled). The new tables stay unused while the matching postgresMigration keys are cassandra.",
+      "order": "at startup",
+      "downtime": "none",
+      "reversible": true
+    },
+    {
+      "kind": "data",
+      "automatic": false,
+      "description": "Optional backfill of the block list and of the password reset codes to PostgreSQL by background-worker (migrateBlockList, migratePasswordReset), after setting the matching postgresMigration key to migration-to-postgresql.",
+      "order": "after upgrading",
+      "downtime": "none",
+      "reversible": true
+    }
+  ],
+  "configuration": [
+    {
+      "key": "galley.config.postgresMigration.blockList",
+      "change": "added",
+      "required": true,
+      "default": "cassandra",
+      "description": "Storage of the block list: cassandra, migration-to-postgresql or postgresql. Mandatory in the brig, galley and background-worker configuration; the chart renders the default."
+    },
+    {
+      "key": "galley.config.postgresMigration.passwordReset",
+      "change": "added",
+      "required": true,
+      "default": "cassandra",
+      "description": "Storage of the password reset codes: cassandra, migration-to-postgresql or postgresql. Mandatory in the brig, galley and background-worker configuration; the chart renders the default."
+    },
+    {
+      "key": "background-worker.config.migrateBlockList",
+      "change": "added",
+      "required": false,
+      "default": "false",
+      "description": "Starts the backfill of the block list to PostgreSQL. Set postgresMigration.blockList to migration-to-postgresql first."
+    },
+    {
+      "key": "background-worker.config.migratePasswordReset",
+      "change": "added",
+      "required": false,
+      "default": "false",
+      "description": "Starts the backfill of the password reset codes to PostgreSQL. Set postgresMigration.passwordReset to migration-to-postgresql first."
+    },
+    {
+      "key": "nginx-ingress-services.config.cspExtraConnectSrc",
+      "change": "added",
+      "required": false,
+      "default": null,
+      "description": "Extra connect-src entries, separated by spaces, added to the Content Security Policy when renderCSPInIngress is true."
+    },
+    {
+      "key": "wire-ingress.gateway.tls",
+      "change": "added",
+      "required": false,
+      "default": "enabled, minVersion 1.3, maxVersion 1.3",
+      "description": "TLS settings of the HTTPS and federation listeners: enabled, minVersion, maxVersion, ecdhCurves, ciphers (TLS 1.2 only), signatureAlgorithms. Set minVersion to \"1.2\" to keep TLS 1.2 clients or federation peers."
+    },
+    {
+      "key": "wire-ingress.FIPS_202205_tls_profile",
+      "change": "added",
+      "required": false,
+      "default": "false",
+      "description": "Applies the FIPS 202205 TLS profile and overrides gateway.tls. Needs gateway.tls.enabled, gateway.patchPolicies.enabled, an ECDSA P-256 or P-384 certificate and gateway.patchPolicies.xdsNameSchemeV2."
+    },
+    {
+      "key": "wire-ingress.gateway.patchPolicies.xdsNameSchemeV2",
+      "change": "added",
+      "required": false,
+      "default": null,
+      "description": "Must match the XDSNameSchemeV2 runtime flag of Envoy Gateway (on by default from 1.10). Only read, and then mandatory, when FIPS_202205_tls_profile is true."
+    },
+    {
+      "key": "wire-ingress.gateway.patchPolicies.xdsListenerName",
+      "change": "added",
+      "required": false,
+      "default": "",
+      "description": "Legacy xDS name scheme only: the listener the FIPS patch targets, when an existing Gateway declares another listener first."
+    },
+    {
+      "key": "wire-ingress.gateway.listeners.https.sectionName",
+      "change": "added",
+      "required": false,
+      "default": "https",
+      "description": "Name of the HTTPS listener. Change it only with gateway.create false, to match an existing Gateway."
+    },
+    {
+      "key": "wire-ingress.gateway.listeners.federator.sectionName",
+      "change": "added",
+      "required": false,
+      "default": "federator",
+      "description": "Name of the federation listener. Change it only with gateway.create false, to match an existing Gateway."
+    },
+    {
+      "key": "wire-ingress.gateway.extraHttpsListeners",
+      "change": "added",
+      "required": false,
+      "default": "[]",
+      "description": "Extra HTTPS listeners (name, hostname, certificateSecretName) on the HTTPS port."
+    },
+    {
+      "key": "wire-ingress.tls.extraDnsNames",
+      "change": "added",
+      "required": false,
+      "default": "[]",
+      "description": "Extra names added to the certificate requested from cert-manager."
+    }
+  ]
+}
