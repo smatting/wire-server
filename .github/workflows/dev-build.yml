@@ -105,7 +105,7 @@ jobs:
           QUAY_PASSWORD: ${{ steps.quay.outputs.token }}
         run: ci/.github/scripts/publish-charts-oci.sh
 
-      - name: Checkout the notify-rm script of wire-rm-actions
+      - name: Checkout the notify-rm and compatibility scripts of wire-rm-actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: wireapp/wire-rm-actions
@@ -128,6 +128,8 @@ jobs:
           DIGESTS_FILE: ${{ runner.temp }}/chart-digests.json
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           NOTIFY_RM: ${{ github.workspace }}/rm-actions/scripts/notify-rm.sh
+          COMPATIBILITY_SH: ${{ github.workspace }}/rm-actions/scripts/compatibility.sh
+          SOURCE_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
         run: ../ci/.github/scripts/declare-dev-build.sh
 
       - name: Publish the charts to S3 charts-develop
